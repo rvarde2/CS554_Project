@@ -8,7 +8,7 @@ object AdditionalSettings {
 
   val initialCmdsConsole: Seq[Def.Setting[String]] =
     if (loadInitialCmds) {
-      Seq(initialCommands in console := "import com.lightbend.training.coffeehouse._")
+      Seq(initialCommands in console := "import com.lightbend.training.carrepair._")
     } else {
       Seq()
     }
