@@ -4,14 +4,19 @@ import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
+import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class CarRepair extends AbstractLoggingActor {
-
     private final ActorRef mechanic = createMechanic();
+
+    //Get Test Drive Duration from config
+    private final FiniteDuration testDriveDuration = FiniteDuration.create(context().system().settings().config()
+            .getDuration("car-repair.guest.test-drive-duration", TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
 
     public CarRepair() {
         log().debug("Car Repair Initiated");
@@ -31,7 +36,7 @@ public class CarRepair extends AbstractLoggingActor {
 
     //Creating Child actor on receiving a message
     protected void createGuest(Repair regularRepair){
-        context().actorOf(Guest.props(mechanic,regularRepair));
+        context().actorOf(Guest.props(mechanic,regularRepair,testDriveDuration));
     }
 
      protected ActorRef createMechanic(){
