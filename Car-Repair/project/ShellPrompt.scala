@@ -21,7 +21,7 @@ object ShellPrompt extends AutoPlugin {
         else
           "project"
 
-        s"$man > $courseName > $exerciseName > "
+        s"$courseName > $exerciseName > "
       }
     )
 
