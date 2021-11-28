@@ -12,7 +12,7 @@ public class CarRepair extends AbstractLoggingActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .matchAny(msg -> log().info("Message to the Car Repair Actor"))
+                .matchAny(msg -> sender().tell(msg.toString(),self())) //If matched send message
                 .build();
     }
 

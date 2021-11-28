@@ -3,10 +3,10 @@
  */
 package com.lightbend.training.carrepair;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
@@ -29,15 +29,31 @@ public class CarRepairApp implements Terminal{
 
     private final LoggingAdapter log;
 
-    @SuppressWarnings("unused")
+
     private final ActorRef carRepair;
 
     public CarRepairApp(final ActorSystem system){
         this.system = system;
         log = Logging.getLogger(system, getClass().getName());
         carRepair = createCarRepair();
+        //carRepair.tell("First Message to Car Repair", Actor.noSender());
+        //New Ananymous actor will send message
+        system.actorOf(printerProps(carRepair));
     }
 
+    private Props printerProps(ActorRef carRepair){
+        return Props.create(AbstractLoggingActor.class, () -> new AbstractLoggingActor() {
+            {
+                carRepair.tell("Ananymous Message",self());
+            }
+            @Override
+            public Receive createReceive() {
+                return ReceiveBuilder.create()
+                        .matchAny(msg-> log().info(msg.toString()))
+                        .build();
+            }
+        });
+    }
     public static void main(final String[] args) throws Exception{
         //Entry Point to Java Code
         final Map<String, String> opts = argsToOpts(Arrays.asList(args));
