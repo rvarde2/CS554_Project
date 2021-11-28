@@ -39,12 +39,14 @@ public class CarRepairApp implements Terminal{
     }
 
     public static void main(final String[] args) throws Exception{
+        //Entry Point to Java Code
         final Map<String, String> opts = argsToOpts(Arrays.asList(args));
         applySystemProperties(opts);
         final String name = opts.getOrDefault("name", "car-repair");
-
+        //Create System for Actors
         final ActorSystem system = ActorSystem.create(String.format("%s-system", name));
         final CarRepairApp carRepairApp = new CarRepairApp(system);
+        //Starting Application: Will move into commandloop eventually
         carRepairApp.run();
     }
 
@@ -68,12 +70,13 @@ public class CarRepairApp implements Terminal{
             String.format("{} running%nEnter commands into the terminal, e.g. 'q' or 'quit'"),
             getClass().getSimpleName()
         );
-        commandLoop();
+        commandLoop();//Infinite Loop
         Await.ready(system.whenTerminated(), Duration.Inf());
     }
 
     protected ActorRef createCarRepair(){
-        return system.deadLetters();
+        //return Actor Reference to Car Repair from our actor system
+        return system.actorOf(CarRepair.props(),"car-repair");
     }
 
     private void commandLoop() throws IOException{
@@ -85,6 +88,10 @@ public class CarRepairApp implements Terminal{
                 break;
             } else {
                 TerminalCommand tc = Terminal.create(line);
+                //Three Options:
+                //1)Create Guest and entertain the request
+                //2)Acquire current status of the system
+                //3)Quit
                 if (tc instanceof TerminalCommand.Guest) {
                     TerminalCommand.Guest tcg = (TerminalCommand.Guest) tc;
                     createGuest(tcg.count, tcg.repair, tcg.maxRepairCount);

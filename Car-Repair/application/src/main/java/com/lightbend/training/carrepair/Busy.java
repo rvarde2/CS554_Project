@@ -3,7 +3,7 @@ package com.lightbend.training.carrepair;
 import scala.concurrent.duration.Duration;
 
 import java.math.BigDecimal;
-
+// Directly borrowed from Coffee Example
 public class Busy {
 
     /**
