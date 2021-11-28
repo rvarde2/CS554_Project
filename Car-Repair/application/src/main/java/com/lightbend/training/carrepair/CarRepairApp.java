@@ -38,10 +38,10 @@ public class CarRepairApp implements Terminal{
         carRepair = createCarRepair();
         //carRepair.tell("First Message to Car Repair", Actor.noSender());
         //New Ananymous actor will send message
-        system.actorOf(printerProps(carRepair));
+        //system.actorOf(printerProps(carRepair));
     }
 
-    private Props printerProps(ActorRef carRepair){
+   /* private Props printerProps(ActorRef carRepair){
         return Props.create(AbstractLoggingActor.class, () -> new AbstractLoggingActor() {
             {
                 carRepair.tell("Ananymous Message",self());
@@ -53,7 +53,8 @@ public class CarRepairApp implements Terminal{
                         .build();
             }
         });
-    }
+    }*/
+
     public static void main(final String[] args) throws Exception{
         //Entry Point to Java Code
         final Map<String, String> opts = argsToOpts(Arrays.asList(args));
@@ -125,6 +126,10 @@ public class CarRepairApp implements Terminal{
     }
 
     protected void createGuest(int count, Repair repair, int maxRepairCount){
+        //Later use YAML for no. of messages
+        for(int i=0;i<count;i++){
+            carRepair.tell(CarRepair.CreateGuest.Instance,ActorRef.noSender());
+        }
     }
 
     protected void getStatus(){
