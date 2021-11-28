@@ -12,11 +12,18 @@ import java.util.concurrent.TimeUnit;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class CarRepair extends AbstractLoggingActor {
-    private final ActorRef mechanic = createMechanic();
+
+    //Get Inspection Duration from config
+    private final FiniteDuration inspectionDuration = FiniteDuration.create(context().system().settings().config()
+            .getDuration("car-repair.inspector.inspection-duration", TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
 
     //Get Test Drive Duration from config
     private final FiniteDuration testDriveDuration = FiniteDuration.create(context().system().settings().config()
             .getDuration("car-repair.guest.test-drive-duration", TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+
+    //Car Repair shop is aware of mapping between mechanic and inspector
+    private final ActorRef inspector = createInspector();
+    private final ActorRef mechanic = createMechanic();
 
     public CarRepair() {
         log().debug("Car Repair Initiated");
@@ -38,9 +45,13 @@ public class CarRepair extends AbstractLoggingActor {
     protected void createGuest(Repair regularRepair){
         context().actorOf(Guest.props(mechanic,regularRepair,testDriveDuration));
     }
+    private ActorRef createInspector() {
+        return getContext().actorOf(Inspector.props(inspectionDuration),"inspector");
+    }
 
-     protected ActorRef createMechanic(){
-        return getContext().actorOf(Mechanic.props(),"mechanic");
+    protected ActorRef createMechanic(){
+
+        return getContext().actorOf(Mechanic.props(inspector),"mechanic");
     }
     public static final class CreateGuest{
         public final Repair regularRepair;

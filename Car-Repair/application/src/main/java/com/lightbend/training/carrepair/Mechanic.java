@@ -1,6 +1,7 @@
 package com.lightbend.training.carrepair;
 
 import akka.actor.AbstractLoggingActor;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 import java.util.Objects;
@@ -9,17 +10,26 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Mechanic extends AbstractLoggingActor {
 
+    //Mechanic should be aware about inspector
+    private ActorRef inspector;
+
+    public Mechanic(ActorRef inspector) {
+        this.inspector = inspector;
+    }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                //send message on receiving request for the service
                 .match(ServiceRequest.class,serviceRequest ->
-                    sender().tell(new ServiceProvided(serviceRequest.repair),self())
+                        //send message on receiving request for the service
+                        this.inspector.tell(new Inspector.InspectionRequest(serviceRequest.repair,sender()),self()))
+                .match(Inspector.InspectionComplete.class,inspectionComplete ->
+                            inspectionComplete.guest.tell(new ServiceProvided(inspectionComplete.repair),self())
                 ).build();
     }
 
-    public static Props props(){
-        return Props.create(Mechanic.class,Mechanic::new);
+    public static Props props(ActorRef inspector){
+        return Props.create(Mechanic.class,() -> new Mechanic(inspector));
     }
     public static final class ServiceRequest{
         public final Repair repair;
