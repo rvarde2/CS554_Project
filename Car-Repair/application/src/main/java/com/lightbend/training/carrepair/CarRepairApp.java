@@ -37,14 +37,14 @@ public class CarRepairApp implements Terminal{
         log = Logging.getLogger(system, getClass().getName());
         carRepair = createCarRepair();
         //carRepair.tell("First Message to Car Repair", Actor.noSender());
-        //New Ananymous actor will send message
+        //New Anonymous actor will send message
         //system.actorOf(printerProps(carRepair));
     }
 
    /* private Props printerProps(ActorRef carRepair){
         return Props.create(AbstractLoggingActor.class, () -> new AbstractLoggingActor() {
             {
-                carRepair.tell("Ananymous Message",self());
+                carRepair.tell("Anonymous Message",self());
             }
             @Override
             public Receive createReceive() {
@@ -128,7 +128,7 @@ public class CarRepairApp implements Terminal{
     protected void createGuest(int count, Repair repair, int maxRepairCount){
         //Later use YAML for no. of messages
         for(int i=0;i<count;i++){
-            carRepair.tell(CarRepair.CreateGuest.Instance,ActorRef.noSender());
+            carRepair.tell(new CarRepair.CreateGuest(repair),ActorRef.noSender());
         }
     }
 
