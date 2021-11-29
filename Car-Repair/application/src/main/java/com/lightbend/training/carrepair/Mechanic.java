@@ -10,11 +10,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Mechanic extends AbstractLoggingActor {
 
-    //Mechanic should be aware about inspector
-    private ActorRef inspector;
+    //Mechanic should be aware about Car Repair shop decision
+    private ActorRef carrepair;
 
-    public Mechanic(ActorRef inspector) {
-        this.inspector = inspector;
+    public Mechanic(ActorRef carrepair) {
+        this.carrepair = carrepair;
     }
 
     @Override
@@ -22,14 +22,14 @@ public class Mechanic extends AbstractLoggingActor {
         return receiveBuilder()
                 .match(ServiceRequest.class,serviceRequest ->
                         //send message on receiving request for the service
-                        this.inspector.tell(new Inspector.InspectionRequest(serviceRequest.repair,sender()),self()))
+                        this.carrepair.tell(new CarRepair.ApproveRepair(serviceRequest.repair,sender()),self()))
                 .match(Inspector.InspectionComplete.class,inspectionComplete ->
                             inspectionComplete.guest.tell(new ServiceProvided(inspectionComplete.repair),self())
                 ).build();
     }
 
-    public static Props props(ActorRef inspector){
-        return Props.create(Mechanic.class,() -> new Mechanic(inspector));
+    public static Props props(ActorRef carrepair){
+        return Props.create(Mechanic.class,() -> new Mechanic(carrepair));
     }
     public static final class ServiceRequest{
         public final Repair repair;

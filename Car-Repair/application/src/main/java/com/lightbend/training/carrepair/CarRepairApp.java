@@ -92,8 +92,9 @@ public class CarRepairApp implements Terminal{
     }
 
     protected ActorRef createCarRepair(){
+        final int serviceLimit = system.settings().config().getInt("car-repair.serviceLimit");
         //return Actor Reference to Car Repair from our actor system
-        return system.actorOf(CarRepair.props(),"car-repair");
+        return system.actorOf(CarRepair.props(serviceLimit),"car-repair");
     }
 
     private void commandLoop() throws IOException{

@@ -35,6 +35,12 @@ public class Guest extends AbstractLoggingActorWithTimers {
                 .build();
     }
 
+    @Override
+    public void postStop() throws Exception, Exception {
+        log().info("Guest {} going away",self());
+        super.postStop();
+    }
+
     private void reportRepairIssue(){
         this.mechanic.tell(new Mechanic.ServiceRequest(this.regularRepair),self());
     }
