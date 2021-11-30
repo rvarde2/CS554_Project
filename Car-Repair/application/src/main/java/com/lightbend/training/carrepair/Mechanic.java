@@ -22,10 +22,13 @@ public class Mechanic extends AbstractLoggingActor {
         return receiveBuilder()
                 .match(ServiceRequest.class,serviceRequest ->
                         //send message on receiving request for the service
-                        this.carrepair.tell(new CarRepair.ApproveRepair(serviceRequest.repair,sender()),self()))
-                .match(Inspector.InspectionComplete.class,inspectionComplete ->
-                            inspectionComplete.guest.tell(new ServiceProvided(inspectionComplete.repair),self())
-                ).build();
+                        this.carrepair.tell(new CarRepair.ApproveRepairRequest(serviceRequest.repair,sender()),self()))
+                .match(CarRepair.ApproveRepairResponse.class,approveRepairResponse -> {
+                    log().info("Received Approval for guest {}",approveRepairResponse.guest);
+                    approveRepairResponse.inspector.tell(new Inspector.InspectionRequest(approveRepairResponse.repair,approveRepairResponse.guest),self());
+                }).match(Inspector.InspectionComplete.class,inspectionComplete -> {
+                    inspectionComplete.guest.tell(new ServiceProvided(inspectionComplete.repair), self());
+                }).build();
     }
 
     public static Props props(ActorRef carrepair){

@@ -9,7 +9,8 @@ public class Guest extends AbstractLoggingActorWithTimers {
     private final ActorRef mechanic;
     private final Repair regularRepair;
     private final FiniteDuration testDriveDuration;
-    private int visits = 0;
+
+    public int visits = 0;
 
     public Guest(ActorRef mechanic, Repair regularRepair, FiniteDuration testDriveDuration) {
         this.mechanic = mechanic;

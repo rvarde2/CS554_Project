@@ -1,6 +1,8 @@
 ---
 name: "John"
 repair: "Engine"
+initial_credits: 1000
 ---
 name: "Jason"
 repair: "Body"
+initial_credits: 500
