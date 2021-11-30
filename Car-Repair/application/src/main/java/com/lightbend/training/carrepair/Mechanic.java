@@ -3,8 +3,10 @@ package com.lightbend.training.carrepair;
 import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import scala.concurrent.duration.Duration;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -13,7 +15,14 @@ public class Mechanic extends AbstractLoggingActor {
     //Mechanic should be aware about Car Repair shop decision
     private ActorRef carrepair;
 
-    public Mechanic(ActorRef carrepair) {
+    private static int rep_engine;
+    private static int rep_body;
+    private static int rep_wheels;
+
+    public Mechanic(ActorRef carrepair,int rep_engine,int rep_body,int rep_wheels) {
+        this.rep_engine = rep_engine;
+        this.rep_body = rep_body;
+        this.rep_wheels = rep_wheels;
         this.carrepair = carrepair;
     }
 
@@ -25,14 +34,29 @@ public class Mechanic extends AbstractLoggingActor {
                         this.carrepair.tell(new CarRepair.ApproveRepairRequest(serviceRequest.repair,sender()),self()))
                 .match(CarRepair.ApproveRepairResponse.class,approveRepairResponse -> {
                     log().info("Received Approval for guest {}",approveRepairResponse.guest);
+                    switch(approveRepairResponse.repair.getClass().getName()){
+                        case "com.lightbend.training.carrepair.Repair$Engine":{
+                            Busy.busy(Duration.create(this.rep_engine, TimeUnit.SECONDS));
+                            break;
+                        }
+                        case "com.lightbend.training.carrepair.Repair$Body":{
+                            Busy.busy(Duration.create(this.rep_body, TimeUnit.SECONDS));
+                            break;
+                        }
+                        case "com.lightbend.training.carrepair.Repair$Wheels": {
+                            Busy.busy(Duration.create(this.rep_wheels, TimeUnit.SECONDS));
+                            break;
+                        }
+                    }
+                    log().info("Completed Repair work for guest {}",approveRepairResponse.guest);
                     approveRepairResponse.inspector.tell(new Inspector.InspectionRequest(approveRepairResponse.repair,approveRepairResponse.guest),self());
                 }).match(Inspector.InspectionComplete.class,inspectionComplete -> {
                     inspectionComplete.guest.tell(new ServiceProvided(inspectionComplete.repair), self());
                 }).build();
     }
 
-    public static Props props(ActorRef carrepair){
-        return Props.create(Mechanic.class,() -> new Mechanic(carrepair));
+    public static Props props(ActorRef carrepair,int rep_engine,int rep_body,int rep_wheels){
+        return Props.create(Mechanic.class,() -> new Mechanic(carrepair,rep_engine,rep_body,rep_wheels));
     }
     public static final class ServiceRequest{
         public final Repair repair;

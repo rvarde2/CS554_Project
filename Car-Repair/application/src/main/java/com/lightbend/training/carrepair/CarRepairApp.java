@@ -6,15 +6,11 @@ package com.lightbend.training.carrepair;
 import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
 import org.yaml.snakeyaml.Yaml;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
-
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;

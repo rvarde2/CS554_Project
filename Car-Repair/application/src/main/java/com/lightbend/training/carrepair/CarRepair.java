@@ -141,8 +141,8 @@ public class CarRepair extends AbstractLoggingActor {
     }
 
     protected ActorRef createMechanic(){
-        
-        return getContext().actorOf(Mechanic.props(self()),"mechanic");
+
+        return getContext().actorOf(Mechanic.props(self(),this.rep_engine,this.rep_body,this.rep_wheels),"mechanic");
     }
 
     public static final class CreateGuest{
