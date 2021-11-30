@@ -1,8 +1,10 @@
 ---
 name: "John"
 repair: "Engine"
-initial_credits: 1000
+initial_credit: 1000
+testDriveDuration: 2
 ---
 name: "Jason"
 repair: "Body"
-initial_credits: 500
+initial_credit: 500
+testDriveDuration: 2

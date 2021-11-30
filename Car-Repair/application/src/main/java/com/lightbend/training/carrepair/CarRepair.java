@@ -4,6 +4,7 @@ import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import org.yaml.snakeyaml.Yaml;
+import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.io.InputStream;
@@ -21,13 +22,15 @@ public class CarRepair extends AbstractLoggingActor {
     private final int insp_body;
     private final int insp_wheels;
 
-    //Get Inspection Duration from yaml
+    //Get Repair Duration from yaml
     private final int rep_engine;
     private final int rep_body;
     private final int rep_wheels;
 
-    //Get Test Drive Duration from config
-    private final FiniteDuration testDriveDuration;
+    //Get Repair Duration from yaml
+    private final int credits_engine;
+    private final int credits_body;
+    private final int credits_wheels;
 
     //Car Repair shop is aware of mapping between mechanic and inspector
     private final ActorRef inspector;
@@ -84,8 +87,15 @@ public class CarRepair extends AbstractLoggingActor {
         this.rep_body = (int) mechanic_obj.get("time_required_for_body_repair");
         this.rep_wheels = (int) mechanic_obj.get("time_required_for_wheels_repair");
 
-        this.testDriveDuration = FiniteDuration.create(context().system().settings().config()
-                .getDuration("car-repair.guest.test-drive-duration", TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+        Yaml carrepair_yaml = new Yaml();
+        InputStream inputStream3 = CarRepair.class
+                .getClassLoader()
+                .getResourceAsStream("carrepair.yml");
+        Map<String, Object> carrepair_obj = (Map<String, Object>) carrepair_yaml.load(inputStream3);
+
+        this.credits_engine = (int) carrepair_obj.get("credits_required_for_engine_repair");
+        this.credits_body = (int) carrepair_obj.get("credits_required_for_body_repair");
+        this.credits_wheels = (int) carrepair_obj.get("credits_required_for_wheels_repair");
 
         this.serviceLimit = serviceLimit;
         this.inspector = createInspector();
@@ -97,34 +107,58 @@ public class CarRepair extends AbstractLoggingActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(CreateGuest.class, createGuest -> {
-                    final ActorRef guest = createGuest(createGuest.regularRepair);
-                    addGuestToLedger(guest);
+                    final ActorRef guest = createGuest(createGuest.regularRepair,createGuest.initial_credit,createGuest.testDriveDuration);
+                    addGuestToLedger(guest,createGuest.initial_credit);
                 })
                 .match(ApproveRepairRequest.class,this::repairApproved,approveRepairRequest -> {
                     mechanic.tell(new ApproveRepairResponse(approveRepairRequest.repair,approveRepairRequest.guest,inspector),self());
                     //inspector.forward(new Inspector.InspectionRequest(approveRepairRequest.repair,approveRepairRequest.guest),context());
                 })
                 .match(ApproveRepairRequest.class,approveRepairRequest -> {
-                    log().info("Service Request Denied due to frequent visits for {}",approveRepairRequest.guest);
+                    log().info("Service Request Denied due to insufficient credits for {}",approveRepairRequest.guest);
                     context().stop(approveRepairRequest.guest);
                 })
                 .build();
     }
 
     private boolean repairApproved(ApproveRepairRequest approveRepairRequest) {
-        final int guestVisitCount = ledger.get(approveRepairRequest.guest);
-        if(guestVisitCount < serviceLimit){
-            ledger.put(approveRepairRequest.guest,guestVisitCount + 1);
-            log().info("Guest {} visit count incremented to {}",approveRepairRequest.guest,guestVisitCount + 1);
-            return true;
+        int credit_remaining = ledger.get(approveRepairRequest.guest);
+        switch(approveRepairRequest.repair.getClass().getName()){
+            case "com.lightbend.training.carrepair.Repair$Engine":{
+                if(credit_remaining<this.credits_engine){
+                    return false;
+                }
+                credit_remaining -= this.credits_engine;
+                ledger.put(approveRepairRequest.guest,credit_remaining);
+                log().info("Guest {} have {} credits remaining",approveRepairRequest.guest,credit_remaining);
+                return true;
+            }
+            case "com.lightbend.training.carrepair.Repair$Body":{
+                if(credit_remaining<this.credits_body){
+                    return false;
+                }
+                credit_remaining -= this.credits_body;
+                ledger.put(approveRepairRequest.guest,credit_remaining);
+                log().info("Guest {} have {} credits remaining",approveRepairRequest.guest,credit_remaining);
+                return true;
+            }
+            case "com.lightbend.training.carrepair.Repair$Wheels": {
+                if(credit_remaining<this.credits_wheels){
+                    return false;
+                }
+                credit_remaining -= this.credits_wheels;
+                ledger.put(approveRepairRequest.guest,credit_remaining);
+                log().info("Guest {} have {} credits remaining",approveRepairRequest.guest,credit_remaining);
+                return true;
+            }
         }
-        log().info("Guest {} visit count has reached the limit of {}",approveRepairRequest.guest,serviceLimit);
+        log().info("Guest {} do not have sufficient credits",approveRepairRequest.guest);
         return false;
     }
 
-    private void addGuestToLedger(ActorRef guest) {
-        ledger.put(guest,0);
-        log().debug("Guest {} added to the ledger",guest);
+    private void addGuestToLedger(ActorRef guest,int initial_credit) {
+        ledger.put(guest,initial_credit);
+        log().debug("Guest {} added to the ledger with initial credit of {}",guest,initial_credit);
     }
 
     public static Props props(int serviceLimit){
@@ -132,8 +166,8 @@ public class CarRepair extends AbstractLoggingActor {
     }
 
     //Creating Child actor on receiving a message
-    protected ActorRef createGuest(Repair regularRepair){
-        return context().actorOf(Guest.props(mechanic,regularRepair,testDriveDuration));
+    protected ActorRef createGuest(Repair regularRepair,int initial_credit,int testDriveDuration){
+        return context().actorOf(Guest.props(mechanic,regularRepair,initial_credit,testDriveDuration));
     }
     private ActorRef createInspector() {
 
@@ -147,8 +181,12 @@ public class CarRepair extends AbstractLoggingActor {
 
     public static final class CreateGuest{
         public final Repair regularRepair;
-        public CreateGuest(Repair regularRepair) {
+        public final int initial_credit;
+        public final int testDriveDuration;
+        public CreateGuest(Repair regularRepair, int initial_credit, int testDriveDuration) {
             checkNotNull(regularRepair,"regular repair cannot be null");
+            this.initial_credit = initial_credit;
+            this.testDriveDuration = testDriveDuration;
             this.regularRepair = regularRepair;
         }
 
@@ -157,21 +195,20 @@ public class CarRepair extends AbstractLoggingActor {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             CreateGuest that = (CreateGuest) o;
-            return Objects.equals(regularRepair, that.regularRepair);
+            return initial_credit == that.initial_credit && testDriveDuration == that.testDriveDuration && Objects.equals(regularRepair, that.regularRepair);
         }
 
         @Override
         public int hashCode() {
-            int h = 1;
-            h *= 1000003;
-            h ^= regularRepair.hashCode();
-            return h;
+            return Objects.hash(regularRepair, initial_credit, testDriveDuration);
         }
 
         @Override
         public String toString() {
             return "CreateGuest{" +
                     "regularRepair=" + regularRepair +
+                    ", initial_credit=" + initial_credit +
+                    ", testDriveDuration=" + testDriveDuration +
                     '}';
         }
     }

@@ -118,7 +118,9 @@ public class CarRepairApp implements Terminal{
             else{
                 continue;
             }
-            carRepair.tell(new CarRepair.CreateGuest(repair),ActorRef.noSender());
+            int initial_credit = (int) guest.get("initial_credit");
+            int testDriveDuration = (int) guest.get("testDriveDuration");
+            carRepair.tell(new CarRepair.CreateGuest(repair, initial_credit, testDriveDuration),ActorRef.noSender());
         }
         while (true) {
 //            String line = in.readLine();
