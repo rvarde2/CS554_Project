@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -123,6 +124,9 @@ public class CarRepairApp implements Terminal{
             carRepair.tell(new CarRepair.CreateGuest(repair, initial_credit, testDriveDuration),ActorRef.noSender());
         }
         while (true) {
+            Busy.busy(Duration.create(3, TimeUnit.SECONDS));
+            System.out.println("Taking Snapshot");
+            CarRepair.snapshot();
 //            String line = in.readLine();
 //            if (line == null) {
 //                system.terminate();

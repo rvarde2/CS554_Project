@@ -4,15 +4,12 @@ import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import org.yaml.snakeyaml.Yaml;
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 
-import java.io.InputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -40,12 +37,13 @@ public class CarRepair extends AbstractLoggingActor {
     private final ArrayList<ActorRef> inspectors;
     private final ArrayList<ActorRef> mechanics;
     private final int serviceLimit;
-    private final Map<ActorRef,Integer> ledger = new HashMap<>();
-    private final Map<ActorRef,Integer> guesttoMechanic = new HashMap<>();
+    public static  Map<ActorRef,Integer> ledger = new HashMap<>();
+    public static  Map<ActorRef,Integer> guestToMechanic = new HashMap<>();
 
     public static int guest_count = 0;
     public static int inspection_requests = 0;
-    public CarRepair(int serviceLimit) {
+    public static Yaml yamlWriter = new Yaml();
+    public CarRepair(int serviceLimit){
         log().debug("Reading from inspector.yml");
         Yaml inspector_yaml = new Yaml();
         InputStream inputStream = CarRepair.class
@@ -117,8 +115,6 @@ public class CarRepair extends AbstractLoggingActor {
             this.mechanics.add(createMechanic(itr2));
         }
 
-
-
         log().info("Car Repair Available");
     }
 
@@ -187,7 +183,7 @@ public class CarRepair extends AbstractLoggingActor {
     }
 
     private void logGuestToMechanic(ActorRef guest,int mechanic_index) {
-        guesttoMechanic.put(guest,mechanic_index);
+        guestToMechanic.put(guest,mechanic_index);
     }
 
     public static Props props(int serviceLimit){
@@ -311,5 +307,23 @@ public class CarRepair extends AbstractLoggingActor {
                     ", inspector=" + inspector +
                     '}';
         }
+    }
+
+    public static void snapshot() throws IOException {
+
+        //Ledger
+        PrintWriter writer = new PrintWriter(new File("ledger.yml"));
+        Map<String, Object> ledger = new HashMap<>();
+        for (Map.Entry<ActorRef,Integer> entry : CarRepair.ledger.entrySet()){
+            ledger.put(entry.getKey().toString(),entry.getValue());
+        }
+        yamlWriter.dump(ledger, writer);
+        //guestToMechanic
+        PrintWriter writer2 = new PrintWriter(new File("guestToMechanic.yml"));
+        Map<String, Object> guestToMechanic = new HashMap<>();
+        for (Map.Entry<ActorRef,Integer> entry : CarRepair.guestToMechanic.entrySet()){
+            guestToMechanic.put(entry.getKey().toString(),entry.getValue());
+        }
+        yamlWriter.dump(guestToMechanic, writer2);
     }
 }
