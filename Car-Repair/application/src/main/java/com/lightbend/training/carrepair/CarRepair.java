@@ -8,6 +8,7 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -32,13 +33,18 @@ public class CarRepair extends AbstractLoggingActor {
     private final int credits_body;
     private final int credits_wheels;
 
+    private final int mechanic_no;
+    private final int inspector_no;
+
     //Car Repair shop is aware of mapping between mechanic and inspector
-    private final ActorRef inspector;
-    private final ActorRef mechanic;
+    private final ArrayList<ActorRef> inspectors;
+    private final ArrayList<ActorRef> mechanics;
     private final int serviceLimit;
     private final Map<ActorRef,Integer> ledger = new HashMap<>();
+    private final Map<ActorRef,Integer> guesttoMechanic = new HashMap<>();
 
-
+    public static int guest_count = 0;
+    public static int inspection_requests = 0;
     public CarRepair(int serviceLimit) {
         log().debug("Reading from inspector.yml");
         Yaml inspector_yaml = new Yaml();
@@ -59,7 +65,7 @@ public class CarRepair extends AbstractLoggingActor {
             log().debug("Wheels Inspection Time are not provided");
             System.exit(0);
         }
-
+        this.inspector_no = (int) inspector_obj.get("inspector_no");
         this.insp_engine = (int) inspector_obj.get("time_required_for_engine_inspection");
         this.insp_body = (int) inspector_obj.get("time_required_for_body_inspection");
         this.insp_wheels = (int) inspector_obj.get("time_required_for_wheels_inspection");
@@ -82,7 +88,7 @@ public class CarRepair extends AbstractLoggingActor {
             log().debug("Wheels Repair Time are not provided");
             System.exit(0);
         }
-
+        this.mechanic_no = (int) mechanic_obj.get("mechanic_no");
         this.rep_engine = (int) mechanic_obj.get("time_required_for_engine_repair");
         this.rep_body = (int) mechanic_obj.get("time_required_for_body_repair");
         this.rep_wheels = (int) mechanic_obj.get("time_required_for_wheels_repair");
@@ -93,13 +99,26 @@ public class CarRepair extends AbstractLoggingActor {
                 .getResourceAsStream("carrepair.yml");
         Map<String, Object> carrepair_obj = (Map<String, Object>) carrepair_yaml.load(inputStream3);
 
+
         this.credits_engine = (int) carrepair_obj.get("credits_required_for_engine_repair");
         this.credits_body = (int) carrepair_obj.get("credits_required_for_body_repair");
         this.credits_wheels = (int) carrepair_obj.get("credits_required_for_wheels_repair");
 
+        inspectors = new ArrayList<ActorRef>();
+        mechanics = new ArrayList<ActorRef>();
+
         this.serviceLimit = serviceLimit;
-        this.inspector = createInspector();
-        this.mechanic = createMechanic();
+
+        for(int itr=0;itr<this.mechanic_no;itr++){
+            this.inspectors.add(createInspector(itr));
+        }
+
+        for(int itr2=0;itr2<this.mechanic_no;itr2++){
+            this.mechanics.add(createMechanic(itr2));
+        }
+
+
+
         log().info("Car Repair Available");
     }
 
@@ -107,11 +126,17 @@ public class CarRepair extends AbstractLoggingActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(CreateGuest.class, createGuest -> {
-                    final ActorRef guest = createGuest(createGuest.regularRepair,createGuest.initial_credit,createGuest.testDriveDuration);
+                    int index = this.guest_count%this.mechanic_no;
+                    final ActorRef guest = createGuest(createGuest.regularRepair,createGuest.initial_credit,createGuest.testDriveDuration,index);
                     addGuestToLedger(guest,createGuest.initial_credit);
+                    logGuestToMechanic(guest,index);
+                    this.guest_count++;
                 })
                 .match(ApproveRepairRequest.class,this::repairApproved,approveRepairRequest -> {
-                    mechanic.tell(new ApproveRepairResponse(approveRepairRequest.repair,approveRepairRequest.guest,inspector),self());
+                    log().info("Approve Repair Request from mechanic-{} for guest {}, repair {}",approveRepairRequest.index,approveRepairRequest.guest,approveRepairRequest.repair);
+                    int inspector_index = this.inspection_requests%this.inspector_no;
+                    mechanics.get(approveRepairRequest.index).tell(new ApproveRepairResponse(approveRepairRequest.repair,approveRepairRequest.guest,inspectors.get(inspector_index)),self());
+                    this.inspection_requests++;
                     //inspector.forward(new Inspector.InspectionRequest(approveRepairRequest.repair,approveRepairRequest.guest),context());
                 })
                 .match(ApproveRepairRequest.class,approveRepairRequest -> {
@@ -161,22 +186,27 @@ public class CarRepair extends AbstractLoggingActor {
         log().debug("Guest {} added to the ledger with initial credit of {}",guest,initial_credit);
     }
 
+    private void logGuestToMechanic(ActorRef guest,int mechanic_index) {
+        guesttoMechanic.put(guest,mechanic_index);
+    }
+
     public static Props props(int serviceLimit){
         return Props.create(CarRepair.class,() -> new CarRepair(serviceLimit));
     }
 
     //Creating Child actor on receiving a message
-    protected ActorRef createGuest(Repair regularRepair,int initial_credit,int testDriveDuration){
-        return context().actorOf(Guest.props(mechanic,regularRepair,initial_credit,testDriveDuration));
-    }
-    private ActorRef createInspector() {
-
-        return getContext().actorOf(Inspector.props(this.insp_engine,this.insp_body,this.insp_wheels),"inspector");
+    protected ActorRef createGuest(Repair regularRepair,int initial_credit,int testDriveDuration,int mech_index){
+        log().debug("Mechanic {} assigned to guest {}",mech_index,this.guest_count);
+        return context().actorOf(Guest.props(mechanics.get(mech_index),regularRepair,initial_credit,testDriveDuration));
     }
 
-    protected ActorRef createMechanic(){
+    private ActorRef createInspector(int index) {
+        return getContext().actorOf(Inspector.props(this.insp_engine,this.insp_body,this.insp_wheels,index),"inspector"+Integer.toString(index));
+    }
 
-        return getContext().actorOf(Mechanic.props(self(),this.rep_engine,this.rep_body,this.rep_wheels),"mechanic");
+    protected ActorRef createMechanic(int index){
+
+        return getContext().actorOf(Mechanic.props(self(),this.rep_engine,this.rep_body,this.rep_wheels,index),"mechanic-"+Integer.toString(index));
     }
 
     public static final class CreateGuest{
@@ -216,24 +246,27 @@ public class CarRepair extends AbstractLoggingActor {
     public static final class ApproveRepairRequest{
         public final Repair repair;
         public final ActorRef guest;
+        public final int index;
 
-        public ApproveRepairRequest(Repair repair, ActorRef guest) {
+        public ApproveRepairRequest(Repair repair, ActorRef guest,int index) {
             checkNotNull(repair,"repair cannot be null");
             checkNotNull(guest,"guest cannot be null");
             this.repair = repair;
             this.guest = guest;
+            this.index = index;
         }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             ApproveRepairRequest that = (ApproveRepairRequest) o;
-            return Objects.equals(repair, that.repair) && Objects.equals(guest, that.guest);
+            return index == that.index && Objects.equals(repair, that.repair) && Objects.equals(guest, that.guest);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(repair, guest);
+            return Objects.hash(repair, guest, index);
         }
 
         @Override
@@ -241,6 +274,7 @@ public class CarRepair extends AbstractLoggingActor {
             return "ApproveRepairRequest{" +
                     "repair=" + repair +
                     ", guest=" + guest +
+                    ", index=" + index +
                     '}';
         }
     }

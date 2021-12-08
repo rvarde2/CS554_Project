@@ -15,15 +15,17 @@ public class Inspector extends AbstractLoggingActor {
     private static int insp_engine;
     private static int insp_body;
     private static int insp_wheels;
+    private int index;
 
-    public Inspector(int insp_engine,int insp_body,int insp_wheels) {
+    public Inspector(int insp_engine,int insp_body,int insp_wheels,int index) {
         this.insp_engine = insp_engine;
         this.insp_body = insp_body;
         this.insp_wheels = insp_wheels;
+        this.index = index;
     }
 
-    public  static Props props(int insp_engine,int insp_body,int insp_wheels){
-        return Props.create(Inspector.class, () -> new Inspector(insp_engine,insp_body,insp_wheels));
+    public  static Props props(int insp_engine,int insp_body,int insp_wheels,int index){
+        return Props.create(Inspector.class, () -> new Inspector(insp_engine,insp_body,insp_wheels,index));
     }
 
     @Override
@@ -69,7 +71,9 @@ public class Inspector extends AbstractLoggingActor {
 
     @Override
     public String toString() {
-        return "Inspector{}";
+        return "Inspector{" +
+                "index=" + index +
+                '}';
     }
 
     public static final class InspectionComplete{

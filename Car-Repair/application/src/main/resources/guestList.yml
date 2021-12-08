@@ -1,10 +1,30 @@
 ---
-name: "John"
+name: "a"
 repair: "Engine"
 initial_credit: 1000
 testDriveDuration: 2
 ---
-name: "Jason"
+name: "b"
 repair: "Body"
 initial_credit: 500
+testDriveDuration: 2
+---
+name: "c"
+repair: "Wheels"
+initial_credit: 300
+testDriveDuration: 2
+---
+name: "d"
+repair: "Body"
+initial_credit: 500
+testDriveDuration: 2
+---
+name: "e"
+repair: "Engine"
+initial_credit: 1000
+testDriveDuration: 2
+---
+name: "f"
+repair: "Wheels"
+initial_credit: 300
 testDriveDuration: 2
