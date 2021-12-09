@@ -132,11 +132,13 @@ public class CarRepair extends AbstractLoggingActor {
                     log().info("Approve Repair Request from mechanic-{} for guest {}, repair {}",approveRepairRequest.index,approveRepairRequest.guest,approveRepairRequest.repair);
                     int inspector_index = this.inspection_requests%this.inspector_no;
                     mechanics.get(approveRepairRequest.index).tell(new ApproveRepairResponse(approveRepairRequest.repair,approveRepairRequest.guest,inspectors.get(inspector_index)),self());
+                    System.out.println(java.time.LocalTime.now()+":: Sending Approve Repair Response for guest "+approveRepairRequest.guest);
                     this.inspection_requests++;
                     //inspector.forward(new Inspector.InspectionRequest(approveRepairRequest.repair,approveRepairRequest.guest),context());
                 })
                 .match(ApproveRepairRequest.class,approveRepairRequest -> {
                     log().info("Service Request Denied due to insufficient credits for {}",approveRepairRequest.guest);
+                    System.out.println(java.time.LocalTime.now()+":: Approve Repair Request Denied for guest "+approveRepairRequest.guest);
                     context().stop(approveRepairRequest.guest);
                 })
                 .build();
@@ -147,6 +149,7 @@ public class CarRepair extends AbstractLoggingActor {
         switch(approveRepairRequest.repair.getClass().getName()){
             case "com.lightbend.training.carrepair.Repair$Engine":{
                 if(credit_remaining<this.credits_engine){
+                    System.out.println(java.time.LocalTime.now()+":: Insufficient Credits for Engine Repair for "+approveRepairRequest.guest);
                     return false;
                 }
                 credit_remaining -= this.credits_engine;
@@ -156,6 +159,7 @@ public class CarRepair extends AbstractLoggingActor {
             }
             case "com.lightbend.training.carrepair.Repair$Body":{
                 if(credit_remaining<this.credits_body){
+                    System.out.println(java.time.LocalTime.now()+":: Insufficient Credits for Body Repair for "+approveRepairRequest.guest);
                     return false;
                 }
                 credit_remaining -= this.credits_body;
@@ -165,6 +169,7 @@ public class CarRepair extends AbstractLoggingActor {
             }
             case "com.lightbend.training.carrepair.Repair$Wheels": {
                 if(credit_remaining<this.credits_wheels){
+                    System.out.println(java.time.LocalTime.now()+":: Insufficient Credits for Wheels Repair for "+approveRepairRequest.guest);
                     return false;
                 }
                 credit_remaining -= this.credits_wheels;

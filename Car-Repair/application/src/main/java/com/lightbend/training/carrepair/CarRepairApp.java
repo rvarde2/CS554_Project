@@ -11,16 +11,13 @@ import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CarRepairApp implements Terminal{
+public class CarRepairApp{
 
     public static final Pattern optPattern = Pattern.compile("(\\S+)=(\\S+)");
 
@@ -38,24 +35,7 @@ public class CarRepairApp implements Terminal{
         this.system = system;
         log = Logging.getLogger(system, getClass().getName());
         carRepair = createCarRepair();
-        //carRepair.tell("First Message to Car Repair", Actor.noSender());
-        //New Anonymous actor will send message
-        //system.actorOf(printerProps(carRepair));
     }
-
-   /* private Props printerProps(ActorRef carRepair){
-        return Props.create(AbstractLoggingActor.class, () -> new AbstractLoggingActor() {
-            {
-                carRepair.tell("Anonymous Message",self());
-            }
-            @Override
-            public Receive createReceive() {
-                return ReceiveBuilder.create()
-                        .matchAny(msg-> log().info(msg.toString()))
-                        .build();
-            }
-        });
-    }*/
 
     public static void main(final String[] args) throws Exception{
         //Entry Point to Java Code
@@ -85,10 +65,6 @@ public class CarRepairApp implements Terminal{
     }
 
     private void run() throws IOException, TimeoutException, InterruptedException {
-//        log.warning(
-//            String.format("{} running%nEnter commands into the terminal, e.g. 'q' or 'quit'"),
-//            getClass().getSimpleName()
-//        );
         commandLoop();//Infinite Loop
         Await.ready(system.whenTerminated(), Duration.Inf());
     }
@@ -100,7 +76,9 @@ public class CarRepairApp implements Terminal{
     }
 
     private void commandLoop() throws IOException{
-        //BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        System.out.println("##Provide Duration between snapshots:");
+        Scanner in = new Scanner(System.in);
+        int duration = in.nextInt();
         Yaml yaml = new Yaml();
         InputStream inputStream = CarRepairApp.class
                 .getClassLoader()
@@ -124,43 +102,10 @@ public class CarRepairApp implements Terminal{
             carRepair.tell(new CarRepair.CreateGuest(repair, initial_credit, testDriveDuration),ActorRef.noSender());
         }
         while (true) {
-            Busy.busy(Duration.create(3, TimeUnit.SECONDS));
-            System.out.println("Taking Snapshot");
+            Busy.busy(Duration.create(duration, TimeUnit.SECONDS));
             CarRepair.snapshot();
-//            String line = in.readLine();
-//            if (line == null) {
-//                system.terminate();
-//                break;
-//            } else {
-//                TerminalCommand tc = Terminal.create(line);
-//                //Three Options:
-//                //1)Create Guest and entertain the request
-//                //2)Acquire current status of the system
-//                //3)Quit
-//                if (tc instanceof TerminalCommand.Guest) {
-//                    TerminalCommand.Guest tcg = (TerminalCommand.Guest) tc;
-//                    createGuest(tcg.count, tcg.repair, tcg.maxRepairCount);
-//                } else if (tc == TerminalCommand.Status.Instance) {
-//                    getStatus();
-//                } else if (tc == TerminalCommand.Quit.Instance) {
-//                    system.terminate();
-//                    break;
-//                } else {
-//                    TerminalCommand.Unknown u = (TerminalCommand.Unknown) tc;
-//                    log.warning("Unknown terminal command {}!", u.command);
-//                }
-//            }
         }
     }
 
-//    protected void createGuest(int count, Repair repair, int maxRepairCount){
-//        //Later use YAML for no. of messages
-//        for(int i=0;i<count;i++){
-//            carRepair.tell(new CarRepair.CreateGuest(repair),ActorRef.noSender());
-//        }
-//    }
-//
-//    protected void getStatus(){
-//    }
 
 }

@@ -37,14 +37,17 @@ public class Inspector extends AbstractLoggingActor {
                     //Dirty fix, do it later: low priority
                     switch(inspectionRequest.repair.getClass().getName()){
                         case "com.lightbend.training.carrepair.Repair$Engine":{
+                                System.out.println(java.time.LocalTime.now()+":: Inspector-"+this.index+" inspecting Engine for "+inspectionRequest.guest);
                                 Busy.busy(Duration.create(this.insp_engine, TimeUnit.SECONDS));
                                 break;
                         }
                         case "com.lightbend.training.carrepair.Repair$Body":{
+                            System.out.println(java.time.LocalTime.now()+":: Inspector-"+this.index+" inspecting Body for "+inspectionRequest.guest);
                                 Busy.busy(Duration.create(this.insp_body, TimeUnit.SECONDS));
                                 break;
                         }
                         case "com.lightbend.training.carrepair.Repair$Wheels": {
+                            System.out.println(java.time.LocalTime.now()+":: Inspector-"+this.index+" inspecting Wheels for "+inspectionRequest.guest);
                                 Busy.busy(Duration.create(this.insp_wheels, TimeUnit.SECONDS));
                                 break;
                         }
@@ -52,6 +55,7 @@ public class Inspector extends AbstractLoggingActor {
                     log().info("Completed Inspection Request for guest {}",inspectionRequest.guest);
                     //Once Inspection is complete Inspector will send message back to the mechanic
                     sender().tell(new InspectionComplete(inspectionRequest.repair,inspectionRequest.guest),self());
+                    System.out.println(java.time.LocalTime.now()+":: Inspector-"+this.index+" sent Inspection Response to "+sender());
                 })
                 .build();
     }

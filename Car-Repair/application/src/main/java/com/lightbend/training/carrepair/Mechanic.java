@@ -41,26 +41,32 @@ public class Mechanic extends AbstractLoggingActor {
                         //send message on receiving request for the service
                         log().info("Mechanic {} received Service Request",this.index);
                         this.carrepair.tell(new CarRepair.ApproveRepairRequest(serviceRequest.repair,sender(),this.index),self());
+                    System.out.println(java.time.LocalTime.now()+":: "+self()+" sent Approve Repair Request to Car Repair Office");
                 }).match(CarRepair.ApproveRepairResponse.class,approveRepairResponse -> {
                     log().info("Received Approval for guest {}",approveRepairResponse.guest);
                     switch(approveRepairResponse.repair.getClass().getName()){
                         case "com.lightbend.training.carrepair.Repair$Engine":{
+                            System.out.println(java.time.LocalTime.now()+":: Mechanic-"+this.index+" working on Engine repair");
                             Busy.busy(Duration.create(this.rep_engine, TimeUnit.SECONDS));
                             break;
                         }
                         case "com.lightbend.training.carrepair.Repair$Body":{
+                            System.out.println(java.time.LocalTime.now()+":: Mechanic-"+this.index+" working on Body repair");
                             Busy.busy(Duration.create(this.rep_body, TimeUnit.SECONDS));
                             break;
                         }
                         case "com.lightbend.training.carrepair.Repair$Wheels": {
+                            System.out.println(java.time.LocalTime.now()+":: Mechanic-"+this.index+" working on Wheels repair");
                             Busy.busy(Duration.create(this.rep_wheels, TimeUnit.SECONDS));
                             break;
                         }
                     }
                     log().info("Completed Repair work for guest {}",approveRepairResponse.guest);
                     approveRepairResponse.inspector.tell(new Inspector.InspectionRequest(approveRepairResponse.repair,approveRepairResponse.guest),self());
+                    System.out.println(java.time.LocalTime.now()+":: Mechanic-"+this.index+" Sent Inspection Request to "+approveRepairResponse.inspector);
                 }).match(Inspector.InspectionComplete.class,inspectionComplete -> {
                     inspectionComplete.guest.tell(new ServiceProvided(inspectionComplete.repair), self());
+                    System.out.println(java.time.LocalTime.now()+":: Mechanic-"+this.index+" Sent Service Provided to "+inspectionComplete.guest);
                 }).build();
     }
 

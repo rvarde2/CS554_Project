@@ -28,6 +28,7 @@ public class Guest extends AbstractLoggingActorWithTimers {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(Mechanic.ServiceProvided.class,serviceProvided -> {
+                    System.out.println(java.time.LocalTime.now()+":: Received Service Provided from "+sender()+". Going for TestDrive.");
                     //Once Service is provided by mechanic
                     goForTestDrive();
                 })//After repair customer will go for test drive  and find that issue is not resolved
@@ -46,6 +47,7 @@ public class Guest extends AbstractLoggingActorWithTimers {
 
     private void reportRepairIssue(){
         this.mechanic.tell(new Mechanic.ServiceRequest(this.regularRepair),self());
+        System.out.println(java.time.LocalTime.now()+":: Sending Service Request from "+self()+" to "+this.mechanic);
     }
     public static Props props(final ActorRef mechanic, final Repair regularRepair,int initial_credit ,int testDriveDuration){
         return Props.create(Guest.class,() -> new Guest(mechanic,regularRepair, initial_credit, testDriveDuration));
