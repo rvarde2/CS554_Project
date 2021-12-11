@@ -97,7 +97,7 @@ public class CarRepair extends AbstractLoggingActor {
                 .getResourceAsStream("carrepair.yml");
         Map<String, Object> carrepair_obj = (Map<String, Object>) carrepair_yaml.load(inputStream3);
 
-
+        CarRepairApp.snapshot_duration = (int) carrepair_obj.get("snapshot_duration");
         this.credits_engine = (int) carrepair_obj.get("credits_required_for_engine_repair");
         this.credits_body = (int) carrepair_obj.get("credits_required_for_body_repair");
         this.credits_wheels = (int) carrepair_obj.get("credits_required_for_wheels_repair");

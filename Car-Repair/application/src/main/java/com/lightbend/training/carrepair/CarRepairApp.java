@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 public class CarRepairApp{
 
     public static final Pattern optPattern = Pattern.compile("(\\S+)=(\\S+)");
-
+    public static int snapshot_duration;
     private final ActorSystem system;
 
     private final LoggingAdapter log;
@@ -76,9 +76,7 @@ public class CarRepairApp{
     }
 
     private void commandLoop() throws IOException{
-        System.out.println("##Provide Duration between snapshots:");
-        Scanner in = new Scanner(System.in);
-        int duration = in.nextInt();
+        //Read Guest List and Send Create Guest to the Car Repair Office
         Yaml yaml = new Yaml();
         InputStream inputStream = CarRepairApp.class
                 .getClassLoader()
@@ -102,7 +100,7 @@ public class CarRepairApp{
             carRepair.tell(new CarRepair.CreateGuest(repair, initial_credit, testDriveDuration),ActorRef.noSender());
         }
         while (true) {
-            Busy.busy(Duration.create(duration, TimeUnit.SECONDS));
+            Busy.busy(Duration.create(CarRepairApp.snapshot_duration, TimeUnit.SECONDS));
             CarRepair.snapshot();
         }
     }
